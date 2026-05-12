@@ -1,80 +1,45 @@
-exports.handler = async (event, context) => {
-  // Yalnız POST sorğularını qəbul et
-  if (event.httpMethod!== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method Not Allowed' })
-    };
-  }
-
+export default async (req, context) => {
   try {
+    const { prompt } = await req.json();
     const apiKey = process.env.GEMINI_KEY;
-    
+
     if (!apiKey) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'API açarı tapılmadı. Netlify Environment variables yoxla.' })
-      };
+      return new Response(JSON.stringify({ error: 'GEMINI_KEY tapılmadı' }), { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const { prompt } = JSON.parse(event.body);
-
-    if (!prompt) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Prompt göndərilməyib' })
-      };
-    }
-
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+    // Düzgün endpoint: v1beta + gemini-1.5-flash
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 2048,
-        }
+        contents: [{ parts: [{ text: prompt }] }]
       })
     });
 
     const data = await response.json();
-
+    
     if (!response.ok) {
-      console.error('Gemini API Error:', data);
-      return {
-        statusCode: response.status,
-        body: JSON.stringify({ 
-          error: data.error?.message || 'Gemini API xətası' 
-        })
-      };
+      return new Response(JSON.stringify({ error: data.error?.message }), { 
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Cavab tapılmadı';
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      },
-      body: JSON.stringify({ result: text })
-    };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Cavab yoxdur';
+    
+    return new Response(JSON.stringify({ text }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
 
   } catch (error) {
-    console.error('Function Error:', error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ 
-        error: 'Server xətası: ' + error.message 
-      })
-    };
+    return new Response(JSON.stringify({ error: error.message }), { 
+      status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 };
