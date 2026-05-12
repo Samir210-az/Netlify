@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>AN Psixoloji Mərkəzi - Tam İşlək Sistem</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f4f8; padding: 16px; color: #1e2a3e; }
+       .container { max-width: 1400px; margin: 0 auto; }
+       .header { background: white; border-radius: 28px; padding: 16px 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+       .header h1 { color: #0f5b7a; font-size: 1.6rem; }
+       .tabs { display: flex; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+       .tab-btn { background: white; border: none; padding: 10px 20px; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+       .tab-btn.active { background: #0f5b7a; color: white; }
+       .tab-content { display: none; background: white; border-radius: 28px; padding: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); }
+       .tab-content.active { display: block; }
+       .form-group { margin-bottom: 14px; }
+        label { font-weight: 600; display: block; margin-bottom: 6px; font-size: 0.9rem; }
+        input, select, textarea { width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 16px; font-size: 0.95rem; }
+        button { background: #0f5b7a; color: white; border: none; padding: 10px 18px; border-radius: 30px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-right: 8px; margin-top: 6px; }
+        button.secondary { background: #e2e8f0; color: #1e2a3e; }
+        button.danger { background: #b91c1c; }
+        button.gemini { background: #4285f4; }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; overflow-x: auto; display: block; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; }
+       .stats-card { background: #f8fafc; border-radius: 20px; padding: 16px; margin-top: 16px; }
+       .recommendation { background: #e0f2fe; border-left: 6px solid #0284c7; padding: 16px; border-radius: 20px; margin: 16px 0; white-space: pre-wrap; }
+       .flex-row { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+       .flex-row.form-group { flex: 1; min-width: 160px; }
+        canvas { max-height: 280px; margin-top: 20px; }
+        hr { margin: 16px 0; }
+        @media (max-width: 700px) { body { padding: 10px; }.tab-btn { padding: 6px 12px; font-size: 0.8rem; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🧠 AN Psixoloji Dəstək və Reabilitasiya Mərkəzi</h1>
+        <p>Peşəkar Məlumat Bazası + Gemini AI | Bütün domenlər işlək</p>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="children">👧 Uşaqlar</button>
+        <button class="tab-btn" data-tab="session">📝 Seans əlavə et</button>
+        <button class="tab-btn" data-tab="reports">📊 Hesabat & AI</button>
+        <button class="tab-btn" data-tab="export">⬇️ İxrac</button>
+        <button class="tab-btn" data-tab="aiask">🤖 AI Sual-Cavab</button>
+    </div>
+
+    <!-- Uşaqlar Tab -->
+    <div id="childrenTab" class="tab-content active">
+        <h2>➕ Yeni uşaq qeydiyyatı</h2>
+        <div class="flex-row">
+            <div class="form-group"><input type="text" id="childName" placeholder="Uşağın adı" /></div>
+            <div class="form-group"><input type="number" id="childAge" placeholder="Yaş (2-18)" min="2" max="18" /></div>
+            <div class="form-group">
+                <select id="childDiagnosis">
+                    <option>Autizm Spektr Pozuntusu (ASP)</option><option>Daun sindromu</option>
+                    <option>Yüngül əqli geriləmə</option><option>Orta əqli geriləmə</option><option>Ağır əqli geriləmə</option>
+                    <option>Nitq gecikməsi</option><option>Diqqət çatışmazlığı (DEHB)</option><option>Qarışıq inkişaf pozuntusu</option>
+                </select>
+            </div>
+            <button id="addChildBtn">➕ Əlavə et</button>
+        </div>
+        <h3 style="margin-top:24px;">📋 Qeydiyyatdan keçmiş uşaqlar</h3>
+        <div style="overflow-x:auto;"><table id="childrenTable"><thead><tr><th>ID</th><th>Ad</th><th>Yaş</th><th>Diaqnoz</th><th>Seans sayı</th><th>Əməliyyat</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <!-- Seans əlavə et Tab -->
+    <div id="sessionTab" class="tab-content">
+        <h2>📊 Yeni terapiya seansı məlumatları</h2>
+        <div class="form-group"><label>Uşaq</label><select id="sessionChildId"></select></div>
+        <div class="form-group"><label>Tarix</label><input type="date" id="sessionDate" /></div>
+        <div class="flex-row">
+            <div class="form-group"><label>🎯 Diqqət (%)</label><input type="number" id="attentionScore" step="1" min="0" max="100" /></div>
+            <div class="form-group"><label>😊 Əsas emosiya</label><select id="dominantEmotion"><option>xoşbəxt</option><option>kədərli</option><option>əsəbi</option><option>təəccüb</option><option>qorxu</option><option>neytral</option></select></div>
+            <div class="form-group"><label>😤 Emosiya intensivliyi (1-10)</label><input type="number" id="emotionIntensity" min="1" max="10" value="5" /></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>🧍 Duruş pozuntusu sayı</label><input type="number" id="postureIssues" value="0" /></div>
+            <div class="form-group"><label>🗣️ Nitq səhvləri sayı</label><input type="number" id="speechErrors" value="0" /></div>
+            <div class="form-group"><label>🔊 Çətin səslər</label><input type="text" id="difficultSounds" placeholder="məs: r, ş, ç" /></div>
+        </div>
+        <div class="flex-row">
+            <div class="form-group"><label>🌪️ Duyğu həddi aşma (1-10)</label><input type="number" id="sensoryOverload" min="1" max="10" value="1" /></div>
+            <div class="form-group"><label>⚡ Duyğu triggeri</label><input type="text" id="sensoryTrigger" placeholder="səs, işıq, toxunma" /></div>
+        </div>
+        <h3>🧩 Autizm əlamətləri</h3>
+        <div class="flex-row">
+            <div class="form-group"><label>🖐️ Əl çırpma (dəq/say)</label><input type="number" id="handFlapping" value="0" /></div>
+            <div class="form-group"><label>🚶 Yellənmə (dəq/say)</label><input type="number" id="rocking" value="0" /></div>
+            <div class="form-group"><label>📦 Sıraya düzmə (dəq/say)</label><input type="number" id="lining" value="0" /></div>
+            <div class="form-group"><label>👀 Göz kontaktı çətinliyi (1-10)</label><input type="number" id="eyeContact" min="1" max="10" value="5" /></div>
+        </div>
+        <h3>🧬 Daun sindromu göstəriciləri</h3>
+        <div class="flex-row">
+            <div class="form-group"><label>💪 Hipotonus (1-10)</label><input type="number" id="hypotonia" min="1" max="10" value="1" /></div>
+            <div class="form-group"><label>👅 Dil çıxartma (1-10)</label><input type="number" id="tongueProtrusion" min="1" max="10" value="1" /></div>
+            <div class="form-group"><label>🦵 Oynaq hərəkətliliyi (1-10)</label><input type="number" id="jointLaxity" min="1" max="10" value="1" /></div>
+        </div>
+        <h3>📉 Əqli geriləmə</h3>
+        <div class="flex-row">
+            <div class="form-group"><label>Səviyyə</label><select id="intellectualLevel"><option>Məlumat yoxdur</option><option>Yaş normasına uyğun</option><option>Yüngül əqli geriləmə</option><option>Orta əqli geriləmə</option><option>Ağır əqli geriləmə</option></select></div>
+            <div class="form-group"><label>Gündəlik həyat bacarıqları (1-10)</label><input type="number" id="dailySkills" min="1" max="10" value="5" /></div>
+        </div>
+        <div class="form-group"><label>📝 Müşahidə qeydləri</label><textarea id="sessionNotes" rows="3"></textarea></div>
+        <button id="saveSessionBtn">💾 Seansı yadda saxla</button>
+    </div>
+
+    <!-- Hesabat & AI Tab -->
+    <div id="reportsTab" class="tab-content">
+        <h2>📈 AI əsaslı hesabat</h2>
+        <div class="flex-row">
+            <div class="form-group" style="flex:2"><select id="reportChildId"></select></div>
+            <button id="generateReportBtn" class="secondary">📊 Statistik hesabat</button>
+        </div>
+        <button id="geminiPlanBtn" class="gemini">✨ Gemini AI ilə həftəlik plan yarat</button>
+        <div id="reportContainer"></div>
+    </div>
+
+    <!-- İxrac Tab -->
+    <div id="exportTab" class="tab-content">
+        <h2>📁 Məlumatların ixracı</h2>
+        <button id="exportCSVBtn" class="secondary">⬇️ CSV endir</button>
+        <button id="deleteAllDataBtn" class="danger">🗑️ Bütün məlumatları sil</button>
+        <hr />
+        <div id="dbStats"></div>
+    </div>
+
+    <!-- AI Sual-Cavab Tab -->
+    <div id="aiaskTab" class="tab-content">
+        <h2>🤖 Gemini AI ilə söhbət</h2>
+        <div class="form-group">
+            <label>📝 Sualınız</label>
+            <textarea id="aiQuestion" rows="4" placeholder="Məsələn: 6 yaşında ASP-li uşaqda təkrarlanan hərəkətləri azaltmaq üçün tövsiyələr?" style="width:100%"></textarea>
+        </div>
+        <button id="askGeminiBtn" class="gemini">🚀 Sorğu göndər</button>
+        <div id="aiAnswer" class="recommendation"></div>
+    </div>
+</div>
+
+<script>
+    // ==================== INDEXEDDB ====================
+    const DB_NAME = 'ANRehabDB';
+    const DB_VERSION = 9;
+    let db = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => { db = request.result; resolve(db); };
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('children')) {
+                    db.createObjectStore('children', { keyPath: 'id', autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains('sessions')) {
+                    const sessionStore = db.createObjectStore('sessions', { keyPath: 'id', autoIncrement: true });
+                    sessionStore.createIndex('childId', 'childId');
+                }
+            };
+        });
+    }
+
+    async function addChild(child) {
+        const tx = db.transaction('children', 'readwrite');
+        return new Promise((resolve, reject) => {
+            const req = tx.objectStore('children').add(child);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function getAllChildren() {
+        const tx = db.transaction('children', 'readonly');
+        return new Promise((resolve) => {
+            const req = tx.objectStore('children').getAll();
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    async function deleteChild(id) {
+        const sessions = await getSessionsByChild(id);
+        const tx = db.transaction(['children', 'sessions'], 'readwrite');
+        sessions.forEach(s => tx.objectStore('sessions').delete(s.id));
+        tx.objectStore('children').delete(id);
+        return new Promise((resolve) => { tx.oncomplete = resolve; });
+    }
+
+    async function addSession(session) {
+        const tx = db.transaction('sessions', 'readwrite');
+        return new Promise((resolve, reject) => {
+            const req = tx.objectStore('sessions').add(session);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    async function getSessionsByChild(childId) {
+        const tx = db.transaction('sessions', 'readonly');
+        const index = tx.objectStore('sessions').index('childId');
+        return new Promise((resolve) => {
+            const req = index.getAll(childId);
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    async function getAllSessions() {
+        const tx = db.transaction('sessions', 'readonly');
+        return new Promise((resolve) => {
+            const req = tx.objectStore('sessions').getAll();
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    async function deleteAllData() {
+        const children = await getAllChildren();
+        for (let c of children) await deleteChild(c.id);
+    }
+
+    // UI yeniləmə
+    async function refreshChildrenTable() {
+        const children = await getAllChildren();
+        const tbody = document.querySelector('#childrenTable tbody');
+        tbody.innerHTML = '';
+        for (let child of children) {
+            const sessions = await getSessionsByChild(child.id);
+            const row = tbody.insertRow();
+            row.insertCell(0).innerText = child.id;
+            row.insertCell(1).innerText = child.name;
+            row.insertCell(2).innerText = child.age;
+            row.insertCell(3).innerText = child.diagnosis;
+            row.insertCell(4).innerText = sessions.length;
+            const delBtn = document.createElement('button');
+            delBtn.innerText = 'Sil';
+            delBtn.className = 'danger';
+            delBtn.style.padding = '4px 12px';
+            delBtn.onclick = async () => {
+                if (confirm('Silmək istəyirsiniz?')) {
+                    await deleteChild(child.id);
+                    refreshChildrenTable();
+                    refreshChildSelectors();
+                }
+            };
+            row.insertCell(5).appendChild(delBtn);
+        }
+    }
+
+    async function refreshChildSelectors() {
+        const children = await getAllChildren();
+        ['sessionChildId', 'reportChildId'].forEach(id => {
+            const sel = document.getElementById(id);
+            if (sel) {
+                sel.innerHTML = '';
+                children.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.name} (${c.diagnosis})`;
+                    sel.appendChild(opt);
+                });
+            }
+        });
+    }
+
+    // Seans yadda saxla
+    document.getElementById('saveSessionBtn').onclick = async () => {
+        const childId = parseInt(document.getElementById('sessionChildId').value);
+        if (!childId) { alert('Uşaq seçin'); return; }
+        const date = document.getElementById('sessionDate').value || new Date().toISOString().slice(0,10);
+        const session = {
+            childId, date,
+            attention: parseInt(document.getElementById('attentionScore').value) || 0,
+            emotion: document.getElementById('dominantEmotion').value,
+            emotionIntensity: parseInt(document.getElementById('emotionIntensity').value),
+            postureIssues: parseInt(document.getElementById('postureIssues').value) || 0,
+            speechErrors: parseInt(document.getElementById('speechErrors').value) || 0,
+            difficultSounds: document.getElementById('difficultSounds').value,
+            sensoryOverload: parseInt(document.getElementById('sensoryOverload').value) || 1,
+            sensoryTrigger: document.getElementById('sensoryTrigger').value,
+            handFlapping: parseInt(document.getElementById('handFlapping').value) || 0,
+            rocking: parseInt(document.getElementById('rocking').value) || 0,
+            lining: parseInt(document.getElementById('lining').value) || 0,
+            eyeContact: parseInt(document.getElementById('eyeContact').value) || 5,
+            hypotonia: parseInt(document.getElementById('hypotonia').value) || 1,
+            tongueProtrusion: parseInt(document.getElementById('tongueProtrusion').value) || 1,
+            jointLaxity: parseInt(document.getElementById('jointLaxity').value) || 1,
+            intellectualLevel: document.getElementById('intellectualLevel').value,
+            dailySkills: parseInt(document.getElementById('dailySkills').value) || 5,
+            notes: document.getElementById('sessionNotes').value
+        };
+        await addSession(session);
+        alert('Seans əlavə edildi');
+        document.getElementById('attentionScore').value = '';
+        document.getElementById('speechErrors').value = '';
+        document.getElementById('handFlapping').value = '';
+        document.getElementById('sessionNotes').value = '';
+    };
+
+    // Statistik hesabat
+    document.getElementById('generateReportBtn').onclick = async () => {
+        const childId = parseInt(document.getElementById('reportChildId').value);
+        if (!childId) return alert('Uşaq seçin');
+        const sessions = await getSessionsByChild(childId);
+        const child = (await getAllChildren()).find(c => c.id === childId);
+        if (sessions.length === 0) {
+            document.getElementById('reportContainer').innerHTML = '<div class="stats-card">Seans yoxdur</div>';
+            return;
+        }
+        const avgAtt = sessions.reduce((a,b) => a + b.attention, 0) / sessions.length;
+        const totalSpeech = sessions.reduce((a,b) => a + b.speechErrors, 0);
+        const totalPosture = sessions.reduce((a,b) => a + b.postureIssues, 0);
+        let rec = [];
+        if (avgAtt < 50) rec.push('🎯 Diqqət aşağıdır, qısa fasilələrlə işləyin.');
+        if (totalSpeech > sessions.length * 2) rec.push('🗣️ Loqoped dəstəyi tövsiyə olunur.');
+        if (totalPosture > sessions.length * 3) rec.push('🧘 Fizioterapeptə müraciət edin.');
+        if (rec.length === 0) rec.push('✅ Yaxşı irəliləyir.');
+        document.getElementById('reportContainer').innerHTML = `
+            <div class="stats-card">
+                <h3>${child.name} (${child.diagnosis})</h3>
+                <p>Seans sayı: ${sessions.length}</p>
+                <p>Orta diqqət: ${avgAtt.toFixed(1)}%</p>
+                <p>Ümumi nitq səhvi: ${totalSpeech}</p>
+                <div class="recommendation"><strong>Tövsiyələr:</strong><br>${rec.join('<br>')}</div>
+            </div>
+        `;
+    };
+
+    // ==================== GEMINI BACKEND ÇAĞIRIŞI ====================
+    async function callGemini(prompt) {
+        const res = await fetch('/.netlify/functions/gemini', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Xəta baş verdi');
+        return data.text;
+    }
+
+    // Plan yarat
+    document.getElementById('geminiPlanBtn').onclick = async () => {
+        const childId = parseInt(document.getElementById('reportChildId').value);
+        if (!childId) { alert('Uşaq seçin'); return; }
+        const child = (await getAllChildren()).find(c => c.id === childId);
+        const sessions = await getSessionsByChild(childId);
+        if (sessions.length === 0) { alert('Seans məlumatı yoxdur'); return; }
+        const last = sessions.slice(-3);
+        const prompt = `Uşaq: ${child.name}, ${child.age} yaş, diaqnoz: ${child.diagnosis}. Son seanslar: ${last.map(s => `Diqqət ${s.attention}%, emosiya ${s.emotion}, nitq səhvləri ${s.speechErrors}`).join('; ')}. Bu məlumatlara əsasən Azərbaycan dilində həftəlik terapiya planı, valideyn tövsiyələri və proqnoz yaz.`;
+        const container = document.getElementById('reportContainer');
+        container.innerHTML = '<div class="stats-card">⏳ AI hazırlayır...</div>';
+        try {
+            const answer = await callGemini(prompt);
+            container.innerHTML = `<div class="recommendation"><strong>🤖 Gemini AI planı:</strong><br><br>${answer.replace(/\n/g, '<br>')}</div>`;
+        } catch (e) {
+            container.innerHTML = `<div class="stats-card" style="color:red;">Xəta: ${e.message}</div>`;
+        }
+    };
+
+    // Sual-cavab
+    document.getElementById('askGeminiBtn').onclick = async () => {
+        const question = document.getElementById('aiQuestion').value.trim();
+        if (!question) { alert('Sual yazın'); return; }
+        const answerDiv = document.getElementById('aiAnswer');
+        answerDiv.innerHTML = '⏳ Gözləyin...';
+        try {
+            const answer = await callGemini(question);
+            answerDiv.innerHTML = answer.replace(/\n/g, '<br>');
+        } catch (e) {
+            answerDiv.innerHTML = `❌ ${e.message}`;
+        }
+    };
+
+    // CSV ixrac
+    document.getElementById('exportCSVBtn').onclick = async () => {
+        const sessions = await getAllSessions();
+        const children = await getAllChildren();
+        const map = Object.fromEntries(children.map(c => [c.id, c]));
+        const rows = [['Ad','Diaqnoz','Tarix','Diqqət%','Emosiya','Nitq səhvləri','Duruş','Qeydlər']];
+        for (let s of sessions) {
+            const c = map[s.childId];
+            if (!c) continue;
+            rows.push([c.name, c.diagnosis, s.date, s.attention, s.emotion, s.speechErrors, s.postureIssues, s.notes]);
+        }
+        const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `seanslar_${new Date().toISOString().slice(0,19)}.csv`;
+        link.click();
+    };
+
+    document.getElementById('deleteAllDataBtn').onclick = async () => {
+        if (confirm('Bütün məlumatlar silinsin?')) {
+            await deleteAllData();
+            refreshChildrenTable();
+            refreshChildSelectors();
+            alert('Silindi');
+        }
+    };
+
+    async function showDBStats() {
+        const children = await getAllChildren();
+        const sessions = await getAllSessions();
+        document.getElementById('dbStats').innerHTML = `<p>Uşaq: ${children.length} | Seans: ${sessions.length}</p>`;
+    }
+
+    // Tab keçid
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const tab = btn.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            if (tab === 'children') document.getElementById('childrenTab').classList.add('active');
+            if (tab === 'session') document.getElementById('sessionTab').classList.add('active');
+            if (tab === 'reports') document.getElementById('reportsTab').classList.add('active');
+            if (tab === 'export') { document.getElementById('exportTab').classList.add('active'); showDBStats(); }
+            if (tab === 'aiask') document.getElementById('aiaskTab').classList.add('active');
+        });
+    });
+
+    // Başlanğıc
+    openDB().then(async () => {
+        await refreshChildrenTable();
+        await refreshChildSelectors();
+        document.getElementById('sessionDate').value = new Date().toISOString().slice(0,10);
+    }).catch(console.error);
+
+    document.getElementById('addChildBtn').onclick = async () => {
+        const name = document.getElementById('childName').value.trim();
+        const age = parseInt(document.getElementById('childAge').value);
+        const diagnosis = document.getElementById('childDiagnosis').value;
+        if (!name ||!age) { alert('Ad və yaş daxil edin'); return; }
+        await addChild({ name, age, diagnosis });
+        document.getElementById('childName').value = '';
+        document.getElementById('childAge').value = '';
+        refreshChildrenTable();
+        refreshChildSelectors();
+    };
+</script>
+</body>
+</html>
