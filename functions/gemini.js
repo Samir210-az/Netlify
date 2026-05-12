@@ -1,17 +1,16 @@
-export default async (req, context) => {
+exports.handler = async function(event, context) {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  const apiKey = process.env.GEMINI_KEY;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+
   try {
-    const { prompt } = await req.json();
-    const apiKey = process.env.GEMINI_KEY;
+    const body = JSON.parse(event.body);
+    const prompt = body.prompt || "Salam";
 
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'GEMINI_KEY tapılmadı' }), { 
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    // Düzgün endpoint: v1beta + gemini-1.5-flash
-     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -21,23 +20,15 @@ export default async (req, context) => {
 
     const data = await response.json();
     
-    if (!response.ok) {
-      return new Response(JSON.stringify({ error: data.error?.message }), { 
-        status: response.status,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Cavab yoxdur';
-    
-    return new Response(JSON.stringify({ text }), {
-      headers: { 'Content-Type': 'application/json' }
-    });
-
+    return {
+      statusCode: 200,
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify(data)
+    };
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), { 
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
   }
 };
