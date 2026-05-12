@@ -12,7 +12,6 @@ export default async (req, context) => {
 
     // Düzgün endpoint: v1beta + gemini-1.5-flash
      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
