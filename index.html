@@ -11,11 +11,14 @@
    .tabs { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
    .tab { padding: 10px 15px; background: white; border: none; border-radius: 8px; cursor: pointer; }
    .tab.active { background: #2563eb; color: white; }
-   .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+   .tab-content { display: none; }
+   .tab-content.active { display: block; }
+   .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
     #geminiBtn { background: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; width: 100%; margin: 10px 0; }
     #geminiBtn:disabled { background: #9ca3af; cursor: not-allowed; }
     #geminiResult { margin-top: 15px; padding: 15px; background: #f9fafb; border-radius: 8px; border: 1px solid #e5e7eb; min-height: 50px; white-space: pre-wrap; }
    .error { color: #dc2626; background: #fee2e2; padding: 10px; border-radius: 6px; }
+    select, button { padding:8px 12px; border-radius:6px; border:1px solid #ccc; margin: 5px 0; }
   </style>
 </head>
 <body>
@@ -26,28 +29,54 @@
   </div>
 
   <div class="tabs">
-    <button class="tab">👧</button>
-    <button class="tab">📝</button>
-    <button class="tab active">📊 Hesabat & AI</button>
-    <button class="tab">⬇️</button>
-    <button class="tab">🤖</button>
+    <button class="tab" onclick="openTab('ushaq')">👧</button>
+    <button class="tab" onclick="openTab('qeyd')">📝</button>
+    <button class="tab active" onclick="openTab('hesabat')">📊 Hesabat & AI</button>
+    <button class="tab" onclick="openTab('yukle')">⬇️</button>
+    <button class="tab" onclick="openTab('bot')">🤖</button>
   </div>
 
-  <div class="card">
-    <h2>📈 AI əsaslı hesabat</h2>
-    <select style="padding:8px; border-radius:6px; border:1px solid #ccc; margin: 10px 0;">
-      <option>Əli Əliyev (Autizm)</option>
-    </select>
-    <button style="padding:8px 12px; border-radius:6px; border:1px solid #ccc; background:white;">📊 Statistik hesabat</button>
+  <div id="ushaq" class="tab-content">
+    <div class="card">Uşaq məlumatları bölməsi</div>
+  </div>
 
-    <button id="geminiBtn" onclick="generateGeminiPlan()">✨ Gemini AI ilə həftəlik plan yarat</button>
-    <div id="geminiResult"></div>
+  <div id="qeyd" class="tab-content">
+    <div class="card">Qeydiyyat bölməsi</div>
+  </div>
+
+  <div id="hesabat" class="tab-content active">
+    <div class="card">
+      <h2>📈 AI əsaslı hesabat</h2>
+      <select id="ushaqSec">
+        <option>Əli Əliyev (Autizm)</option>
+      </select>
+      <button>📊 Statistik hesabat</button>
+
+      <button id="geminiBtn" onclick="generateGeminiPlan()">✨ Gemini AI ilə həftəlik plan yarat</button>
+      <div id="geminiResult"></div>
+    </div>
+  </div>
+
+  <div id="yukle" class="tab-content">
+    <div class="card">Yükləmə bölməsi</div>
+  </div>
+
+  <div id="bot" class="tab-content">
+    <div class="card">Bot bölməsi</div>
   </div>
 
 <script>
+function openTab(tabName) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(tabName).classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
 async function generateGeminiPlan() {
   const btn = document.getElementById('geminiBtn');
   const resultDiv = document.getElementById('geminiResult');
+  const ushaq = document.getElementById('ushaqSec').value;
 
   btn.disabled = true;
   btn.innerHTML = '⏳ Plan yaradılır...';
@@ -59,20 +88,21 @@ async function generateGeminiPlan() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prompt: 'Əli Əliyev adlı 8 yaşlı, autizmli uşaq üçün 1 həftəlik fərdi reabilitasiya planı yaz. Günlərə böl. Sadə dildə yaz.'
+        prompt: `${ushaq} üçün 1 həftəlik sadə reabilitasiya planı yaz. 7 günə böl. Hər gün üçün 2-3 fəaliyyət yaz.`
       })
     });
 
     const data = await res.json();
+    console.log('Gemini cavabı:', data); // Debug üçün
 
-    if (!res.ok) {
-      throw new Error(data.error?.message || data.message || 'Server xətası');
+    if (data.error) {
+      throw new Error(data.error.message || JSON.stringify(data.error));
     }
 
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!text) {
-      throw new Error('Gemini cavab qaytarmadı. API açarı və ya modeli yoxlayın.');
+      throw new Error('Gemini cavab qaytarmadı. Səb: ' + JSON.stringify(data.promptFeedback || data));
     }
 
     resultDiv.innerHTML = text.replace(/\n/g, '<br>');
@@ -80,6 +110,7 @@ async function generateGeminiPlan() {
   } catch (err) {
     resultDiv.innerHTML = `Xəta: ${err.message}`;
     resultDiv.className = 'error';
+    console.error(err);
   } finally {
     btn.disabled = false;
     btn.innerHTML = '✨ Gemini AI ilə həftəlik plan yarat';
